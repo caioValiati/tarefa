@@ -90,7 +90,7 @@ class _MyHomePageState extends State<MyHomePage> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: Padding(
-        padding: const EdgeInsets.fromLTRB(512, 48, 512, 0),
+        padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
           child: ListView(
