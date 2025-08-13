@@ -6,152 +6,164 @@ void main() {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Formulário de Cadastro',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        body: const CarouselForm(),
       ),
-      home: const MyHomePage(title: 'Cadastro de Usuário'),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-  final String title;
+class CarouselForm extends StatefulWidget {
+  const CarouselForm({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<CarouselForm> createState() => _CarouselFormState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  final _formKey = GlobalKey<FormState>();
-  final _nomeController = TextEditingController();
-  final _dataNascimentoController = TextEditingController();
-  String? _sexoSelecionado;
-  DateTime? _dataNascimento;
+class _CarouselFormState extends State<CarouselForm> {
+  final List<FormData> forms = List.generate(5, (_) => FormData());
 
-  void _enviarFormulario() {
-    if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Formulário válido! Enviando dados...')),
-      );
-    }
-  }
-
-  Future<void> _selecionarDataNascimento() async {
-    final DateTime? dataSelecionada = await showDatePicker(
-      context: context,
-      initialDate: DateTime(2000, 1, 1),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.all(16),
+      itemCount: forms.length,
+      separatorBuilder: (_, __) => const SizedBox(width: 16),
+      itemBuilder: (context, index) {
+        return SizedBox(
+          width: 250,
+          child: Card(
+            elevation: 4,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: FormCard(
+                data: forms[index],
+                onChanged: (newData) {
+                  setState(() {
+                    forms[index] = newData;
+                  });
+                },
+              ),
+            ),
+          ),
+        );
+      },
     );
-
-    if (dataSelecionada != null) {
-      setState(() {
-        _dataNascimento = dataSelecionada;
-        _dataNascimentoController.text = _formatarData(dataSelecionada);
-      });
-    }
   }
+}
 
-  String _formatarData(DateTime data) {
-    final dia = data.day.toString().padLeft(2, '0');
-    final mes = data.month.toString().padLeft(2, '0');
-    final ano = data.year.toString();
-    return '$dia/$mes/$ano';
-  }
+class FormData {
+  String nome = '';
+  DateTime? dataNascimento;
+  String? sexo;
+}
 
-  bool _ehMaiorDeIdade(DateTime data) {
-    final hoje = DateTime.now();
-    int idade = hoje.year - data.year;
-    if (hoje.month < data.month ||
-        (hoje.month == data.month && hoje.day < data.day)) {
-      idade--;
-    }
-    return idade >= 18;
+class FormCard extends StatefulWidget {
+  final FormData data;
+  final ValueChanged<FormData> onChanged;
+
+  const FormCard({
+    super.key,
+    required this.data,
+    required this.onChanged,
+  });
+
+  @override
+  State<FormCard> createState() => _FormCardState();
+}
+
+class _FormCardState extends State<FormCard> {
+  late TextEditingController _nomeController;
+
+  @override
+  void initState() {
+    super.initState();
+    _nomeController = TextEditingController(text: widget.data.nome);
   }
 
   @override
   void dispose() {
     _nomeController.dispose();
-    _dataNascimentoController.dispose();
     super.dispose();
+  }
+
+  void _selecionarData() async {
+    DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: widget.data.dataNascimento ?? DateTime(2000),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null) {
+      setState(() {
+        widget.data.dataNascimento = picked;
+      });
+      widget.onChanged(widget.data);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              TextFormField(
-                controller: _nomeController,
-                decoration: const InputDecoration(labelText: 'Nome'),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Informe o nome';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
+    return Column(
+      children: [
+        TextField(
+          controller: _nomeController,
+          decoration: const InputDecoration(
+            labelText: 'Nome Completo',
+            border: OutlineInputBorder(),
+          ),
+          onChanged: (value) {
+            widget.data.nome = value;
+            widget.onChanged(widget.data);
+          },
+        ),
+        const SizedBox(height: 8),
 
-              TextFormField(
-                controller: _dataNascimentoController,
-                readOnly: true,
-                decoration: const InputDecoration(
-                  labelText: 'Data de Nascimento',
-                  suffixIcon: Icon(Icons.calendar_today),
-                ),
-                onTap: _selecionarDataNascimento,
-                validator: (value) {
-                  if (_dataNascimento == null) {
-                    return 'Selecione a data de nascimento';
-                  }
-                  if (!_ehMaiorDeIdade(_dataNascimento!)) {
-                    return 'Você precisa ter pelo menos 18 anos';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              DropdownButtonFormField<String>(
-                value: _sexoSelecionado,
-                decoration: const InputDecoration(labelText: 'Sexo'),
-                items: const [
-                  DropdownMenuItem(value: 'Masculino', child: Text('Masculino')),
-                  DropdownMenuItem(value: 'Feminino', child: Text('Feminino')),
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    _sexoSelecionado = value;
-                  });
-                },
-                validator: (value) =>
-                    value == null ? 'Selecione o sexo' : null,
-              ),
-              const SizedBox(height: 32),
-
-              ElevatedButton(
-                onPressed: _enviarFormulario,
-                child: const Text('Enviar'),
-              ),
-            ],
+        InkWell(
+          onTap: _selecionarData,
+          child: InputDecorator(
+            decoration: const InputDecoration(
+              labelText: 'Data de Nascimento',
+              border: OutlineInputBorder(),
+            ),
+            child: Text(
+              widget.data.dataNascimento != null
+                  ? "${widget.data.dataNascimento!.day.toString().padLeft(2, '0')}/"
+                    "${widget.data.dataNascimento!.month.toString().padLeft(2, '0')}/"
+                    "${widget.data.dataNascimento!.year}"
+                  : 'Selecione uma data',
+            ),
           ),
         ),
-      ),
+        const SizedBox(height: 16),
+
+        DropdownButtonFormField<String>(
+          decoration: const InputDecoration(
+            labelText: 'Sexo',
+            border: OutlineInputBorder(),
+          ),
+          value: widget.data.sexo,
+          items: const [
+            DropdownMenuItem(value: 'Homem', child: Text('Homem')),
+            DropdownMenuItem(value: 'Mulher', child: Text('Mulher')),
+          ],
+          onChanged: (value) {
+            setState(() {
+              widget.data.sexo = value;
+            });
+            widget.onChanged(widget.data);
+          },
+        ),
+      ],
     );
   }
 }
