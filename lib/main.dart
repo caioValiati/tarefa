@@ -1,169 +1,135 @@
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(MyApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+bool isAuthenticated = false;
 
+class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        body: const CarouselForm(),
-      ),
-    );
-  }
-}
+      title: 'Rotas com Autenticação',
+      initialRoute: '/',
+      onGenerateRoute: (settings) {
+        if (settings.name == '/') {
+          return MaterialPageRoute(builder: (_) => LoginScreen());
+        }
 
-class CarouselForm extends StatefulWidget {
-  const CarouselForm({super.key});
+        if (settings.name == '/home') {
+          if (isAuthenticated) {
+            return MaterialPageRoute(builder: (_) => HomeScreen());
+          } else {
+            return MaterialPageRoute(
+                builder: (_) => NotAuthorizedScreen(routeName: '/home'));
+          }
+        }
 
-  @override
-  State<CarouselForm> createState() => _CarouselFormState();
-}
+        if (settings.name == '/detalhes') {
+          if (isAuthenticated) {
+            final Map<String, dynamic> args =
+                settings.arguments as Map<String, dynamic>;
+            return MaterialPageRoute(
+                builder: (_) => DetalhesScreen(dados: args));
+          } else {
+            return MaterialPageRoute(
+                builder: (_) => NotAuthorizedScreen(routeName: '/detalhes'));
+          }
+        }
 
-class _CarouselFormState extends State<CarouselForm> {
-  final List<FormData> forms = List.generate(5, (_) => FormData());
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView.separated(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.all(16),
-      itemCount: forms.length,
-      separatorBuilder: (_, __) => const SizedBox(width: 16),
-      itemBuilder: (context, index) {
-        return SizedBox(
-          width: 250,
-          child: Card(
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: FormCard(
-                data: forms[index],
-                onChanged: (newData) {
-                  setState(() {
-                    forms[index] = newData;
-                  });
-                },
-              ),
-            ),
-          ),
-        );
+        return MaterialPageRoute(builder: (_) => Scaffold(
+              body: Center(child: Text("Rota não encontrada")),
+            ));
       },
     );
   }
 }
 
-class FormData {
-  String nome = '';
-  DateTime? dataNascimento;
-  String? sexo;
-}
-
-class FormCard extends StatefulWidget {
-  final FormData data;
-  final ValueChanged<FormData> onChanged;
-
-  const FormCard({
-    super.key,
-    required this.data,
-    required this.onChanged,
-  });
-
+class LoginScreen extends StatelessWidget {
   @override
-  State<FormCard> createState() => _FormCardState();
-}
-
-class _FormCardState extends State<FormCard> {
-  late TextEditingController _nomeController;
-
-  @override
-  void initState() {
-    super.initState();
-    _nomeController = TextEditingController(text: widget.data.nome);
-  }
-
-  @override
-  void dispose() {
-    _nomeController.dispose();
-    super.dispose();
-  }
-
-  void _selecionarData() async {
-    DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: widget.data.dataNascimento ?? DateTime(2000),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text("Login")),
+      body: Center(
+        child: ElevatedButton(
+          child: Text("Fazer Login"),
+          onPressed: () {
+            isAuthenticated = true;
+            Navigator.pushNamed(context, '/home');
+          },
+        ),
+      ),
     );
-    if (picked != null) {
-      setState(() {
-        widget.data.dataNascimento = picked;
-      });
-      widget.onChanged(widget.data);
-    }
   }
+}
+
+class HomeScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final usuario = {
+      "nome": "Caio Geraldo",
+      "nascimento": "19/08/2004",
+      "telefone": "(11) 99999-9999"
+    };
+
+    return Scaffold(
+      appBar: AppBar(title: Text("Home")),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text("Bem-vindo à Home!"),
+            SizedBox(height: 20),
+            ElevatedButton(
+              child: Text("Ver Detalhes"),
+              onPressed: () {
+                Navigator.pushNamed(context, '/detalhes', arguments: usuario);
+              },
+            )
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class DetalhesScreen extends StatelessWidget {
+  final Map<String, dynamic> dados;
+
+  DetalhesScreen({required this.dados});
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        TextField(
-          controller: _nomeController,
-          decoration: const InputDecoration(
-            labelText: 'Nome Completo',
-            border: OutlineInputBorder(),
-          ),
-          onChanged: (value) {
-            widget.data.nome = value;
-            widget.onChanged(widget.data);
-          },
-        ),
-        const SizedBox(height: 8),
-
-        InkWell(
-          onTap: _selecionarData,
-          child: InputDecorator(
-            decoration: const InputDecoration(
-              labelText: 'Data de Nascimento',
-              border: OutlineInputBorder(),
-            ),
-            child: Text(
-              widget.data.dataNascimento != null
-                  ? "${widget.data.dataNascimento!.day.toString().padLeft(2, '0')}/"
-                    "${widget.data.dataNascimento!.month.toString().padLeft(2, '0')}/"
-                    "${widget.data.dataNascimento!.year}"
-                  : 'Selecione uma data',
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        DropdownButtonFormField<String>(
-          decoration: const InputDecoration(
-            labelText: 'Sexo',
-            border: OutlineInputBorder(),
-          ),
-          value: widget.data.sexo,
-          items: const [
-            DropdownMenuItem(value: 'Homem', child: Text('Homem')),
-            DropdownMenuItem(value: 'Mulher', child: Text('Mulher')),
+    return Scaffold(
+      appBar: AppBar(title: Text("Detalhes do Usuário")),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Nome: ${dados['nome']}"),
+            Text("Nascimento: ${dados['nascimento']}"),
+            Text("Telefone: ${dados['telefone']}"),
           ],
-          onChanged: (value) {
-            setState(() {
-              widget.data.sexo = value;
-            });
-            widget.onChanged(widget.data);
-          },
         ),
-      ],
+      ),
+    );
+  }
+}
+
+class NotAuthorizedScreen extends StatelessWidget {
+  final String routeName;
+
+  NotAuthorizedScreen({required this.routeName});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text("Acesso Negado")),
+      body: Center(
+        child: Text("Você precisa estar logado para acessar $routeName"),
+      ),
     );
   }
 }
