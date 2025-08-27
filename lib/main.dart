@@ -1,92 +1,84 @@
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
-bool isAuthenticated = false;
-
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Rotas com Autenticação',
-      initialRoute: '/',
-      onGenerateRoute: (settings) {
-        if (settings.name == '/') {
-          return MaterialPageRoute(builder: (_) => LoginScreen());
-        }
-
-        if (settings.name == '/home') {
-          if (isAuthenticated) {
-            return MaterialPageRoute(builder: (_) => HomeScreen());
-          } else {
-            return MaterialPageRoute(
-                builder: (_) => NotAuthorizedScreen(routeName: '/home'));
-          }
-        }
-
-        if (settings.name == '/detalhes') {
-          if (isAuthenticated) {
-            final Map<String, dynamic> args =
-                settings.arguments as Map<String, dynamic>;
-            return MaterialPageRoute(
-                builder: (_) => DetalhesScreen(dados: args));
-          } else {
-            return MaterialPageRoute(
-                builder: (_) => NotAuthorizedScreen(routeName: '/detalhes'));
-          }
-        }
-
-        return MaterialPageRoute(builder: (_) => Scaffold(
-              body: Center(child: Text("Rota não encontrada")),
-            ));
-      },
+      title: 'BottomNav + TabBar Demo',
+      theme: ThemeData(primarySwatch: Colors.blue),
+      home: const MainScreen(),
     );
   }
 }
 
-class LoginScreen extends StatelessWidget {
+class MainScreen extends StatefulWidget {
+  const MainScreen({super.key});
+
+  @override
+  State<MainScreen> createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> {
+  int _selectedIndex = 0;
+
+  final List<Widget> _pages = const [
+    Center(child: Text("Página 1 - Home")),
+    ModuleTwo(),
+    Center(child: Text("Página 3 - Configurações")),
+  ];
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Login")),
-      body: Center(
-        child: ElevatedButton(
-          child: Text("Fazer Login"),
-          onPressed: () {
-            isAuthenticated = true;
-            Navigator.pushNamed(context, '/home');
-          },
-        ),
+      body: _pages[_selectedIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+          BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: "Conteúdo"),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: "Config"),
+        ],
       ),
     );
   }
 }
 
-class HomeScreen extends StatelessWidget {
+class ModuleTwo extends StatelessWidget {
+  const ModuleTwo({super.key});
+
   @override
   Widget build(BuildContext context) {
-    final usuario = {
-      "nome": "Caio Geraldo",
-      "nascimento": "19/08/2004",
-      "telefone": "(11) 99999-9999"
-    };
-
-    return Scaffold(
-      appBar: AppBar(title: Text("Home")),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text("Módulo 2"),
+          bottom: const TabBar(
+            tabs: [
+              Tab(icon: Icon(Icons.star), text: "Aba 1"),
+              Tab(icon: Icon(Icons.favorite), text: "Aba 2"),
+              Tab(icon: Icon(Icons.person), text: "Aba 3"),
+            ],
+          ),
+        ),
+        body: const TabBarView(
           children: [
-            Text("Bem-vindo à Home!"),
-            SizedBox(height: 20),
-            ElevatedButton(
-              child: Text("Ver Detalhes"),
-              onPressed: () {
-                Navigator.pushNamed(context, '/detalhes', arguments: usuario);
-              },
-            )
+            NestedPage(title: "Conteúdo da Aba 1"),
+            NestedPage(title: "Conteúdo da Aba 2"),
+            NestedPage(title: "Conteúdo da Aba 3"),
           ],
         ),
       ),
@@ -94,42 +86,38 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-class DetalhesScreen extends StatelessWidget {
-  final Map<String, dynamic> dados;
+class NestedPage extends StatelessWidget {
+  final String title;
 
-  DetalhesScreen({required this.dados});
+  const NestedPage({super.key, required this.title});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text("Detalhes do Usuário")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Nome: ${dados['nome']}"),
-            Text("Nascimento: ${dados['nascimento']}"),
-            Text("Telefone: ${dados['telefone']}"),
-          ],
-        ),
+    return Center(
+      child: ElevatedButton(
+        child: Text("$title\nIr para Detalhes"),
+        onPressed: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => DetailPage(info: title),
+            ),
+          );
+        },
       ),
     );
   }
 }
 
-class NotAuthorizedScreen extends StatelessWidget {
-  final String routeName;
+class DetailPage extends StatelessWidget {
+  final String info;
 
-  NotAuthorizedScreen({required this.routeName});
+  const DetailPage({super.key, required this.info});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Acesso Negado")),
-      body: Center(
-        child: Text("Você precisa estar logado para acessar $routeName"),
-      ),
+      appBar: AppBar(title: const Text("Detalhes")),
+      body: Center(child: Text("Detalhes da: $info")),
     );
   }
 }
